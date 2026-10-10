@@ -596,20 +596,17 @@ if st.session_state.run_analysis:
         else: return "**Thin Tailed:** Outliers decay rapidly, closely resembling standard exponential or normal distributions."
 
     def get_ms_text_styled(finals):
-        p1 = finals.get(1, 0)
-        p2 = finals.get(2, 0)
-        p3 = finals.get(3, 0)
-        p4 = finals.get(4, 0)
-        if p1 > 0.05:
-            return f"**Undefined Mean ($p=1$ ratio $\\approx {p1:.3f}$):** The 1st moment fails to converge. The distribution is Cauchy-like; even the average return is mathematically undefined."
-        elif p2 > 0.05:
-            return f"**Infinite Variance ($p=2$ ratio $\\approx {p2:.3f}$):** The 2nd moment fails to converge. A single outlier dominates the sample variance, proving historical volatility is mathematically undefined."
-        elif p3 > 0.05:
-            return f"**Infinite Skewness ($p=3$ ratio $\\approx {p3:.3f}$):** Mean and variance converge, but the 3rd moment remains elevated. The distribution is highly asymmetric and dominated by isolated black swans."
-        elif p4 > 0.05:
-            return f"**Infinite Kurtosis ($p=4$ ratio $\\approx {p4:.3f}$):** Variance exists, but the 4th moment remains erratic. The 'variance of the variance' is infinite, driving violent volatility clustering."
-        else:
-            return f"**Thin Tailed ($p=4$ ratio $\\approx {p4:.3f}$):** All evaluated moments ($p=1, 2, 3, 4$) smoothly converge near zero, indicating finite and stable statistical moments."
+        failed_ps = [p for p in [4, 3, 2, 1] if finals.get(p, 0) > 0.05]
+        
+        if not failed_ps:
+            return f"**Thin Tailed (All $p \le 4$ ratios $\le 0.05$):** All evaluated moments smoothly converge near zero, indicating finite and stable statistics."
+            
+        severity_map = {1: "Undefined Mean", 2: "Infinite Variance", 3: "Infinite Skewness", 4: "Infinite Kurtosis"}
+        severity = severity_map[min(failed_ps)]
+        
+        failed_details = ", ".join([f"$p={p}$ $\\approx {finals.get(p, 0):.3f}$" for p in failed_ps])
+        
+        return f"**{severity} ({failed_details}):** Historical outliers dominate the sum, mathematically preventing convergence of these moments."
 
     def get_mep_text_styled(slope):
         if slope is None or np.isnan(slope): return "**N/A:** Insufficient tail data to extract excess slope."
