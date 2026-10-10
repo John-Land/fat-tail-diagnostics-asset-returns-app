@@ -596,9 +596,20 @@ if st.session_state.run_analysis:
         else: return "**Thin Tailed:** Outliers decay rapidly, closely resembling standard exponential or normal distributions."
 
     def get_ms_text_styled(finals):
+        p1 = finals.get(1, 0)
+        p2 = finals.get(2, 0)
+        p3 = finals.get(3, 0)
         p4 = finals.get(4, 0)
-        if p4 > 0.05: return "**Fat Tailed (Infinite Kurtosis):** The final ratio remains erratic and elevated, meaning a single historical outlier heavily dominates the total sum."
-        else: return "**Thin Tailed:** The final ratio smoothly converges near zero, indicating moments are finite and stable."
+        if p1 > 0.05:
+            return f"**Undefined Mean ($p=1$ ratio $\\approx {p1:.3f}$):** The 1st moment fails to converge. The distribution is Cauchy-like; even the average return is mathematically undefined."
+        elif p2 > 0.05:
+            return f"**Infinite Variance ($p=2$ ratio $\\approx {p2:.3f}$):** The 2nd moment fails to converge. A single outlier dominates the sample variance, proving historical volatility is mathematically undefined."
+        elif p3 > 0.05:
+            return f"**Infinite Skewness ($p=3$ ratio $\\approx {p3:.3f}$):** Mean and variance converge, but the 3rd moment remains elevated. The distribution is highly asymmetric and dominated by isolated black swans."
+        elif p4 > 0.05:
+            return f"**Infinite Kurtosis ($p=4$ ratio $\\approx {p4:.3f}$):** Variance exists, but the 4th moment remains erratic. The 'variance of the variance' is infinite, driving violent volatility clustering."
+        else:
+            return f"**Thin Tailed ($p=4$ ratio $\\approx {p4:.3f}$):** All evaluated moments ($p=1, 2, 3, 4$) smoothly converge near zero, indicating finite and stable statistical moments."
 
     def get_mep_text_styled(slope):
         if slope is None or np.isnan(slope): return "**N/A:** Insufficient tail data to extract excess slope."
@@ -624,7 +635,7 @@ The historic daily return data for ticker **{ticker}** indicate a **{tail_type}*
 * **Right Tail ($\\alpha \\approx {fmt(zipf_alpha_r)}$):** {get_zipf_text_styled(zipf_alpha_r)}
 
 **Maximum-to-Sum Plot (Moment Convergence):**
-* **4th Moment (Kurtosis ratio $\\approx {fmt(ms_finals.get(4, 0), 3)}$):** {get_ms_text_styled(ms_finals)}
+* {get_ms_text_styled(ms_finals)}
 
 **Mean Excess Plot (Expected Severity):**
 * **Left Tail (Slope $\\approx {fmt(mep_slope_l, 3)}$):** {get_mep_text_styled(mep_slope_l)}
